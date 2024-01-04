@@ -15,7 +15,6 @@ out_prefix = "all_samples"
 org = "human"
 
 setwd(in_dir)
-
 out_dir <- paste0(in_dir,"/Seurat_output/data/results/")
 # dir.create(out_dir, recursive = TRUE)
 # dir.create(paste0(out_dir,"QC/"))
