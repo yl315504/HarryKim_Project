@@ -36,7 +36,6 @@ out_dir <- paste0(in_dir,"/Seurat_output/data/results/")
 
 # Read filtered after QC seurat object
 filtered_seurat <- readRDS(file=paste0(out_dir,"seurat_filtered.rds"),ref=NULL)
-
 # Single-cell RNA-seq analysis - clustering analysis
 
 # if (org == "mouse") {
