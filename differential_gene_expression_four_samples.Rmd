@@ -1,0 +1,884 @@
+---
+title: "Differential gene expression for Harry Kim"
+author: "Yan Liu"
+date: "2023-08-10"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, echo = FALSE}
+setwd("D:\\Yan\\Harry_Kim\\four_samples\\Seurat_output\\data\\results")
+getwd()
+```
+```{r}
+suppressPackageStartupMessages(library(SingleCellExperiment))
+suppressPackageStartupMessages(library(Seurat))
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(RCurl))
+suppressPackageStartupMessages(library(cowplot))
+suppressPackageStartupMessages(library(Matrix))
+suppressPackageStartupMessages(library(scales))
+suppressPackageStartupMessages(library(hdf5r))
+suppressPackageStartupMessages(library(AnnotationHub))
+```
+
+
+Read in "four_samples_final_integrated_seurat.rds".
+```{r, echo = FALSE}
+seurat_integrated_FourSamples <- readRDS("D:\\Yan\\Harry_Kim\\four_samples\\Seurat_output\\data\\results\\four_samples_final_integrated_seurat.rds")
+```
+
+Create a new column with values of "Y276", "Y278", "Y280", or "Y284" because there are Y276L, Y276R, Y278L, Y278R, Y280L, Y280R, Y284L, and Y284R.
+```{r, echo = FALSE}
+library(dplyr)
+
+# case_when(condition ~ output-value)
+seurat_integrated_FourSamples@meta.data <- seurat_integrated_FourSamples@meta.data %>%
+  mutate(animal_ID = case_when(
+    startsWith(orig.ident, "Y276") ~ "Y276",
+    startsWith(orig.ident, "Y278") ~ "Y278",
+    startsWith(orig.ident, "Y280") ~ "Y280",
+    startsWith(orig.ident, "Y284") ~ "Y284"
+  ))
+seurat_integrated_FourSamples@meta.data$animal_ID <- as.factor(seurat_integrated_FourSamples@meta.data$animal_ID)
+```
+
+Get a subset of Y276
+```{r, echo = FALSE}
+seurat_Y276 <- subset(seurat_integrated_FourSamples, subset = animal_ID == "Y276")
+```
+
+Generate UMPA plots
+```{r, echo = FALSE}
+DimPlot(seurat_Y276, reduction = "umap", split.by="orig.ident", label = TRUE, label.size = 3, pt.size = 0.8) + NoLegend()
+```
+Rename clusters
+```{r, echo = FALSE}
+seurat_integrated_FourSamples <- RenameIdents(seurat_integrated_FourSamples, `0` = "ISG expressing immune", `1` = "ISG expressing immune",
+                                 `2` = "Neutrophils", `3` = "Naive B", `4` = "Neutrophils", `5` = "Pro-B",
+                                 `6` = "Neutrophils", `7` = "Memory CD4+ T", `8` = "Neutrophils", `9` = "Granulocytes", 
+                                `10` = "Macrophages", `11` = "Macrophages", `12` = "Effector CD8+ T", 
+                                `13` = "Neutrophils", `14` = "Eosinophils", `15` = "Neutrophils", `16` = "Neutrophils", `17` = "Granulocytes",
+                                `18` = "Memory CD4+ T", `19` = "Naive CD4+ T", `20` = "Eosinophils",
+                                `21` = "Erythroid", `22` = "Mast", `23` = "Granulocytes",
+                                `24` = "Plasmacytoid Dendritic", `25` = "CD8+ NKT-like", `26` = "CD8+ NKT-like",
+                                `27` = "CD8+ NKT-like", `28` = "Myeloid Dendritic", `29` = "CD8+ NKT-like",
+                                `30` = "CD8+ NKT-like", `31` = "Macrophages", `32` = "Plasma B",
+                                `33` = "Mast", `34` = "Erythroid", `35` = "Naive B", `36` = "Macrophages",
+                                `37` = "Naive B", `38` = "Neutrophils", `39` = "Mast", `40` = "Endothelial", `41` = "Macrophages",
+                                `42` = "Erythroid", `43` = "Progenitor")
+```
+
+Save the identity  in a new column (cell type)
+```{r, echo = FALSE}
+seurat_integrated_FourSamples$cell_type <- Idents(seurat_integrated_FourSamples)
+```
+
+Output path
+```{r, echo = FALSE}
+out_dir = "D:\\Yan\\Harry_Kim\\four_samples\\Seurat_output\\data\\results"
+```
+
+Save the new seurat object
+```{r, echo = FALSE}
+saveRDS(seurat_integrated_FourSamples, paste0(out_dir, "\\seurat_integrated_cell_annotation_FourSamples.rds"))
+```
+
+Read in "seurat_integrated_cell_annotation_FourSamples.rds"
+```{r, echo = FALSE}
+seurat_integrated_CellAnnotation_FourSamples <- readRDS("D:\\Yan\\Harry_Kim\\four_samples\\Seurat_output\\data\\results\\seurat_integrated_cell_annotation_FourSamples.rds")
+```
+
+UMAP plot including four samples with cell annotation
+```{r, echo = FALSE}
+pdf(paste0(out_dir,"\\Integrated_data_figures\\","UMAP_CellAnnotation_FourSamples.pdf"), width = 21, height = 12)
+DimPlot(seurat_integrated_CellAnnotation_FourSamples, reduction = "umap", split.by = "group", label = TRUE, label.size = 5, pt.size = 0.8) + NoLegend()
+dev.off()
+```
+
+```{r, echo = FALSE}
+png(paste0(out_dir,"\\Integrated_data_figures\\","UMAP_CellAnnotation_FourSamples.png"), 
+    width = 21, height = 12, units = "in", res = 600)
+DimPlot(seurat_integrated_CellAnnotation_FourSamples, reduction = "umap", split.by = "group", 
+        label = TRUE, label.size = 5, pt.size = 0.8) + NoLegend()
+dev.off()
+```
+
+Get a subset of Y276 and generate UMPA plots
+```{r, echo = FALSE}
+seurat_CellAnnotation_Y276 <- subset(seurat_integrated_CellAnnotation_FourSamples, subset = animal_ID == "Y276")
+png(paste0(out_dir,"\\Integrated_data_figures\\","UMAP_CellAnnotation_Y276.png"), width = 21, height = 12, units = "in", res = 600)
+DimPlot(seurat_CellAnnotation_Y276, reduction = "umap", split.by = "orig.ident", label = TRUE, label.size = 5, pt.size = 0.8) + NoLegend()
+dev.off()
+```
+
+Get a subset of Y278 and generate UMPA plots
+```{r, echo = FALSE}
+seurat_CellAnnotation_Y278 <- subset(seurat_integrated_CellAnnotation_FourSamples, subset = animal_ID == "Y278")
+png(paste0(out_dir,"\\Integrated_data_figures\\","UMAP_CellAnnotation_Y278.png"), width = 21, height = 12, units = "in", res = 600)
+DimPlot(seurat_CellAnnotation_Y278, reduction = "umap", split.by = "orig.ident", label = TRUE, label.size = 5, pt.size = 0.8) + NoLegend()
+dev.off()
+```
+
+Get a subset of Y280 and generate UMPA plots
+```{r, echo = FALSE}
+seurat_CellAnnotation_Y280 <- subset(seurat_integrated_CellAnnotation_FourSamples, subset = animal_ID == "Y280")
+png(paste0(out_dir,"\\Integrated_data_figures\\","UMAP_CellAnnotation_Y280.png"), width = 21, height = 12, units = "in", res = 600)
+DimPlot(seurat_CellAnnotation_Y280, reduction = "umap", split.by = "orig.ident", label = TRUE, label.size = 5, pt.size = 0.8) + NoLegend()
+dev.off()
+```
+Get a subset of Y284 and generate UMPA plots
+```{r, echo = FALSE}
+seurat_CellAnnotation_Y284 <- subset(seurat_integrated_CellAnnotation_FourSamples, subset = animal_ID == "Y284")
+png(paste0(out_dir,"\\Integrated_data_figures\\","UMAP_CellAnnotation_Y284.png"), width = 21, height = 12, units = "in", res = 600)
+DimPlot(seurat_CellAnnotation_Y284, reduction = "umap", split.by = "orig.ident", label = TRUE, label.size = 5, pt.size = 0.8) + NoLegend()
+dev.off()
+```
+
+Generate a sub-object with only "Plasmacytoid Dendritic", "Myeloid Dendritic", "Macrophages", "Mast".
+```{r, echo = FALSE}
+sub_seurat_integrated_4_clusters <- subset(x = seurat_integrated_CellAnnotation_FourSamples, 
+                                    idents = c("Plasmacytoid Dendritic", "Myeloid Dendritic", "Macrophages", "Mast"))
+```
+
+
+```{r, echo = FALSE}
+png(paste0(out_dir,"\\Integrated_data_figures\\","UMAP_CellAnnotation_FourClusters_merged.png"), width = 21, height = 12, units = "in", res = 600)
+DimPlot(sub_seurat_integrated_4_clusters, reduction = "umap", label = TRUE, label.size = 5, pt.size = 0.8) + NoLegend()
+dev.off()
+```
+
+```{r, echo = FALSE}
+png(paste0(out_dir,"\\Integrated_data_figures\\","UMAP_CellAnnotation_FourClusters_splitted.png"), width = 21, height = 12, units = "in", res = 600)
+DimPlot(sub_seurat_integrated_4_clusters, reduction = "umap", split.by = "group", label = TRUE, label.size = 5, pt.size = 0.8) + NoLegend()
+dev.off()
+```
+
+Find markers for every cluster compared to all remaining cells. Report only the positive ones.
+```{r}
+FourSamples.markers <- FindAllMarkers(seurat_integrated_CellAnnotation_FourSamples, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
+FourSamples.markers %>% group_by(cluster) %>% slice_max(n = 2, order_by = avg_log2FC)
+```
+
+```{r}
+write.table(FourSamples.markers, file = "D:/Yan/Harry_Kim/four_samples/Seurat_output/data/results/Integrated_data_figures/fourSamples_cellType_dge_markers.txt", sep = "\t", row.names = FALSE)
+```
+
+```{r}
+FourSamples.markers <- read.delim("D:/Yan/Harry_Kim/four_samples/Seurat_output/data/results/Integrated_data_figures/fourSamples_cellType_dge_markers.txt")
+```
+
+
+```{r}
+FourSamples.markers %>% group_by(cluster) %>% top_n(n = 3, wt = avg_log2FC) -> top3
+png(paste0(out_dir,"\\Integrated_data_figures\\","_FourSamples_dge_heatmap.png"),
+    width = 40, height = 30, units = "in", res = 600)
+DoHeatmap(seurat_integrated_CellAnnotation_FourSamples, features = top3$gene, angle = 90) +
+  theme(legend.title = element_text(size = 30),
+        legend.text = element_text(size = 20))
+dev.off()
+```
+```{r}
+levels(seurat_integrated_FourSamples) <- c("CD8+ NKT-like", )
+```
+
+```{r}
+FourSamples.markers[order(FourSamples.markers$p_val_adj),] -> cluster.markers
+head(cluster.markers)
+
+cluster.markers %>%
+  group_by(cluster) %>%
+    slice(1:5) -> top5
+	
+cluster.markers %>%
+  group_by(cluster) %>%
+    slice(1:3) -> top3
+	
+cluster.markers %>%
+  group_by(cluster) %>%
+    slice(1:2) -> top2
+
+cluster.markers %>%
+  group_by(cluster) %>%
+    slice(1:1) -> top1
+```
+
+```{r}
+FourSamples.markers <- ScaleData(FourSamples.markers, features = as.character(unique(top5$gene)), assay = "RNA")
+DoHeatmap(FourSamples.markers, features = as.character(unique(top3$gene)), group.by = sel.clust, 
+    assay = "RNA")
+```
+
+Generate dotplot with top1 genes.
+```{r}
+
+DotPlot(seurat_integrated_CellAnnotation_FourSamples, features = as.character(unique(top1$gene)), 
+    assay = "RNA") + coord_flip() + theme(axis.text.x = element_text(angle = 90))
+```
+
+Find clusters again with Mast cells and Macrophages
+```{r}
+sub_seurat_integrated_2_clusters <- subset(x = seurat_integrated_CellAnnotation_FourSamples, 
+                                    idents = c( "Macrophages", "Mast"))
+```
+
+Get clusters
+```{r}
+sub_seurat_integrated_2_clusters <- FindNeighbors(sub_seurat_integrated_2_clusters, dims = 1:10)
+sub_seurat_integrated_2_clusters <- FindClusters(sub_seurat_integrated_2_clusters, resolution = 0.8)
+head(Idents(sub_seurat_integrated_2_clusters), 5)
+```
+
+Generate UMAP
+```{r}
+sub_seurat_integrated_2_clusters <- RunUMAP(sub_seurat_integrated_2_clusters, dims = 1:10)
+DimPlot(sub_seurat_integrated_2_clusters, reduction = "umap", split.by = "group", label = TRUE, 
+        label.size = 5, pt.size = 0.8, cols = c("5"='#1FA195', "6"='#B95FBB', "11"='#faf4cf', "13"='#F68282', "14"='#31C53F'))
+```
+
+Find markers 
+```{r}
+FourSamples.Mast.Macrophages.markers <- FindAllMarkers(sub_seurat_integrated_2_clusters, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
+FourSamples.Mast.Macrophages.markers %>% group_by(cluster) %>% slice_max(n = 2, order_by = avg_log2FC)
+write.table(FourSamples.Mast.Macrophages.markers, file = "D:/Yan/Harry_Kim/four_samples/Seurat_output/data/results/Integrated_data_figures/fourSamples_Mast_Macrophagesdge_markers.txt", sep = "\t", row.names = FALSE)
+```
+
+Save the new seurat object
+```{r, echo = FALSE}
+saveRDS(sub_seurat_integrated_2_clusters, paste0(out_dir, "\\seurat_Mast_Macrophages.rds"))
+```
+
+Read in the two clusters new seurat object
+```{r}
+sub_seurat_integrated_2_clusters <- readRDS("D:\\Yan\\Harry_Kim\\four_samples\\Seurat_output\\data\\results\\seurat_Mast_Macrophages.rds")
+```
+
+
+```{r}
+singleCell_cellTypeAnnotation <- function(seurat_integrated) {
+  # Cell type assignment
+  # load gene set preparation function
+  lapply(c("dplyr","Seurat","HGNChelper"), library, character.only = T)
+  source("https://raw.githubusercontent.com/IanevskiAleksandr/sc-type/master/R/gene_sets_prepare.R")
+  # load cell type annotation function
+  source("https://raw.githubusercontent.com/IanevskiAleksandr/sc-type/master/R/sctype_score_.R")
+  
+  # DB file
+  db_ = "https://raw.githubusercontent.com/IanevskiAleksandr/sc-type/master/ScTypeDB_full.xlsx";
+  tissue = "Immune system" # e.g. Immune   system,Pancreas,Liver,Eye,Kidney,Brain,Lung,Adrenal,Heart,Intestine,Muscle,Placenta,Spleen,Stomach,Thymus 
+  
+  # prepare gene sets
+  gs_list = gene_sets_prepare(db_, tissue)
+  
+  # get cell-type by cell matrix
+  es.max = sctype_score(scRNAseqData = seurat_integrated[["integrated"]]@scale.data, scaled = TRUE, 
+                        gs = gs_list$gs_positive, gs2 = gs_list$gs_negative)
+  
+  # Resolution 0.8(seurat_integrated@meta.data$integrated_snn_res.0.8)
+  cL_results = do.call("rbind", lapply(unique(seurat_integrated@meta.data$integrated_snn_res.0.8), function(cl){
+    es.max.cl = sort(rowSums(es.max[ ,rownames(seurat_integrated@meta.data[seurat_integrated@meta.data$integrated_snn_res.0.8==cl, ])]),   decreasing = !0)
+    head(data.frame(cluster = cl, type = names(es.max.cl), scores = es.max.cl, ncells = sum(seurat_integrated@meta.data$integrated_snn_res.0.8==cl)), 5)
+  }))
+  
+  sctype_scores = cL_results %>% group_by(cluster) %>% top_n(n = 1, wt = scores) 
+  
+  # set low-confident (low ScType score) clusters to "unknown"
+  sctype_scores$type[as.numeric(as.character(sctype_scores$scores)) < sctype_scores$ncells/4] = "Unknown"
+  print(sctype_scores[,1:3])
+  
+  write.csv(sctype_scores, "sctype_scores_Mast_Macrophages_res0.8.csv")
+  write.csv(cL_results, "res0.8_bubble_cluster_scores.csv")
+  
+  # Extract identity and sample information from seurat object to determine the number of cells per cluster per sample
+  n_cells <- FetchData(seurat_integrated, 
+                       vars = c("ident", "sample")) %>%
+    group_by(sample) %>%
+    dplyr::count(ident) %>% 
+    spread(ident, n) 
+  
+  write.csv(n_cells, "res0.8_Mast_Macrophages_cells_per_cluster.csv")
+}
+
+```
+
+
+```{r}
+singleCell_cellTypeAnnotation(sub_seurat_integrated_2_clusters)
+```
+
+```{r, echo = FALSE}
+DimPlot(seurat_integrated_FourSamples, reduction = "umap", split.by="group", label = TRUE, 
+        label.size = 3, pt.size = 0.8, cols=c("22"='red', "33"='#25aff5', "39"="#1FA195"))
+```
+
+Generate a sub-seurat object with only "Macrophages".
+```{r, echo = FALSE}
+seurat_integrated_CellAnnotation_FourSamples <- readRDS("D:\\Yan\\Harry_Kim\\four_samples\\Seurat_output\\data\\results\\seurat_integrated_cell_annotation_FourSamples.rds")
+
+sub_seurat_integrated_Macrophages <- subset(x = seurat_integrated_CellAnnotation_FourSamples, 
+                                    idents = c("Macrophages"))
+```
+
+Generate Macrophage clusters using resolution 0.2
+```{r}
+sub_seurat_integrated_Macrophages <- FindNeighbors(sub_seurat_integrated_Macrophages, dims = 1:10)
+sub_seurat_integrated_Macrophages <- FindClusters(sub_seurat_integrated_Macrophages, resolution = 0.2, 
+                                                  graph.name = "integrated_snn")
+head(Idents(sub_seurat_integrated_Macrophages), 5)
+```
+
+Generate Macrophage UMAP resolution 0.2
+```{r}
+png(paste0(out_dir,"\\Integrated_data_figures\\","UMAP_Macrophages_FourSamples_res0.2.png"), 
+    width = 21, height = 12, units = "in", res = 600)
+sub_seurat_integrated_Macrophages <- RunUMAP(sub_seurat_integrated_Macrophages, dims = 1:10)
+DimPlot(sub_seurat_integrated_Macrophages, reduction = "umap", split.by = "group", label = TRUE, 
+        label.size = 5, pt.size = 0.8)
+dev.off()
+```
+
+Find markers of all Macrophage subclusters resolution 0.2
+```{r}
+FourSamples.Macrophages.markers.res0.2 <- FindAllMarkers(sub_seurat_integrated_Macrophages, min.pct = 0.25, logfc.threshold = 0.25)
+FourSamples.Macrophages.markers.res0.2 %>% group_by(cluster) %>% slice_max(n = 2, order_by = avg_log2FC)
+write.table(FourSamples.Macrophages.markers.res0.2, file = "D:/Yan/Harry_Kim/four_samples/Seurat_output/data/results/Integrated_data_figures/fourSamples_Macrophagesdge_markers_res0.2.txt", sep = "\t", row.names = FALSE)
+```
+
+Generate only Macrophage clusters using resolution 0.4
+```{r}
+sub_seurat_integrated_Macrophages <- FindNeighbors(sub_seurat_integrated_Macrophages, dims = 1:10)
+sub_seurat_integrated_Macrophages <- FindClusters(sub_seurat_integrated_Macrophages, resolution = 0.4,
+                                                  graph.name = "integrated_snn")
+head(Idents(sub_seurat_integrated_Macrophages), 5)
+```
+
+Generate UMAP of Macrophage clusters resolution 0.4
+```{r}
+png(paste0(out_dir,"\\Integrated_data_figures\\","UMAP_Macrophages_FourSamples_res0.4.png"), 
+    width = 21, height = 12, units = "in", res = 600)
+sub_seurat_integrated_Macrophages <- RunUMAP(sub_seurat_integrated_Macrophages, dims = 1:10)
+DimPlot(sub_seurat_integrated_Macrophages, reduction = "umap", split.by = "group", label = TRUE, 
+        label.size = 5, pt.size = 0.8)
+dev.off()
+```
+
+Find markers of Macrophage subclusters for resolution 0.4
+```{r}
+FourSamples.Macrophages.markers.res0.4 <- FindAllMarkers(sub_seurat_integrated_Macrophages, 
+                                                         min.pct = 0.25, logfc.threshold = 0.25)
+FourSamples.Macrophages.markers.res0.4 %>% group_by(cluster) %>% slice_max(n = 2, order_by = avg_log2FC)
+write.table(FourSamples.Macrophages.markers.res0.4, file = "D:/Yan/Harry_Kim/four_samples/Seurat_output/data/results/Integrated_data_figures/fourSamples_Macrophagesdge_markers_res0.4.txt", sep = "\t", row.names = FALSE)
+```
+
+Just analyze Mast cell (cluster 22, 33, and 39). Find differentially expressed genes between cluster 33 and other 2 clusters.
+```{r}
+seurat_integrated_FourSamples <- readRDS("D:\\Yan\\Harry_Kim\\four_samples\\Seurat_output\\data\\results\\four_samples_final_integrated_seurat.rds")
+sub_seurat_integrated_cluster22_33_39 <- subset(x = seurat_integrated_FourSamples, 
+                                    idents = c(22, 33, 39))
+```
+
+Find markers of cluster 33 (Mast cells)
+```{r}
+cluster33.markers <- FindMarkers(sub_seurat_integrated_cluster22_33_39, 
+                                 ident.1 = 33, 
+                                 min.cells.group = 1, 
+                                 min.cells.feature = 1,
+                                 min.pct = 0,
+                                 logfc.threshold = 0,
+                                 only.pos = FALSE)
+write.table(cluster33.markers,
+            file = "D:/Yan/Harry_Kim/four_samples/Seurat_output/data/results/Integrated_data_figures/fourSamples_cluster33_markers_res1.4.txt",
+            sep = "\t",                 
+            row.names = TRUE)
+```
+
+# Gene Set Enrichment Analysis (GSEA): Compute the score for each gene.
+```{r}
+
+data <- read.delim("D:/Yan/Harry_Kim/four_samples/Seurat_output/data/results/Integrated_data_figures/fourSamples_cluster33_markers_res1.4.txt")
+data$rankMetric <- sign(data$avg_log2FC)*(-log10(data$p_val))
+write.table(data[, c("FEATURE_NAME", "rankMetric")], file = "cluster33_pathway_results.rnk", sep = "\t",
+            quote = FALSE, row.names = FALSE, col.names = FALSE) 
+```
+
+Run pathway analysis (WebGestalt)
+```{r}
+#install.packages("WebGestaltR")
+library(WebGestaltR)
+
+# The function to check available organisms (organism)
+# listOrganism()
+# "athaliana"     "btaurus"       "celegans"      "cfamiliaris"  
+# "drerio"        "sscrofa"       "dmelanogaster" "ggallus"      
+# "hsapiens"      "mmusculus"     "rnorvegicus"   "scerevisiae"  
+
+# The functional categories for the enrichment analysis (enrichDatabase)
+# listGeneSet()
+# 1                  geneontology_Biological_Process
+# 2      geneontology_Biological_Process_noRedundant
+# 3                  geneontology_Cellular_Component
+# 4      geneontology_Cellular_Component_noRedundant
+# 5                  geneontology_Molecular_Function
+# 6      geneontology_Molecular_Function_noRedundant
+# 7                                     pathway_KEGG
+# 8                                  pathway_Panther
+# 9                                 pathway_Reactome
+# 10                             pathway_Wikipathway
+# 11                      pathway_Wikipathway_cancer
+
+# Enrichment methods: ORA, GSEA or NTA (enrichMethod)
+WebGestaltR_function <- function(file_name,species,database,database_type,out_dir){
+
+     WebGestaltR(enrichMethod = "GSEA", organism = species,
+                            enrichDatabase = database,
+                            interestGeneFile = file_name, interestGeneType = "genesymbol",
+                            sigMethod = "top", topThr = 10, minNum = 5,
+                            projectName = paste0(file_name,"_",species,"_",database_type),
+                            outputDirectory = out_dir)
+}
+```
+
+geneontology_Biological_Process_noRedundant analysis
+```{r}
+setwd("D:/Yan/Harry_Kim/four_samples/Seurat_output/data/results/Integrated_data_figures/")
+file_name <- "cluster33_pathway_results.rnk"
+species <- "hsapiens"
+database <- "geneontology_Biological_Process_noRedundant"
+database_type <- "GO"
+out_dir <- getwd()
+WebGestaltR_function(file_name,species,database,database_type,out_dir)
+```
+
+KEGG
+```{r}
+setwd("D:/Yan/Harry_Kim/four_samples/Seurat_output/data/results/Integrated_data_figures/")
+file_name <- "cluster33_pathway_results.rnk"
+species <- "hsapiens"
+database <- "pathway_KEGG"
+database_type <- "KEGG"
+out_dir <- getwd()
+WebGestaltR_function(file_name,species,database,database_type,out_dir)
+```
+
+
+Analyze only macrophages in all combined 6 samples. 
+```{r}
+setwd("D:\\Yan\\Harry_Kim\\all_samples\\Seurat_output\\data\\results")
+out_dir <- "D:\\Yan\\Harry_Kim\\all_samples\\Seurat_output\\data\\results\\"
+```
+
+Dr. Kim claimed cluster 5, 14 and 46 as macrophages. Just analyze these 3 clusters. 
+```{r}
+seurat_integrated_SixSamples <- readRDS("D:\\Yan\\Harry_Kim\\all_samples\\Seurat_output\\data\\results\\all_samples_final_integrated_seurat.rds")
+sub_seurat_integrated_SixSamples_cluster5_14_46 <- subset(x = seurat_integrated_SixSamples, 
+                                    idents = c(5, 14, 46))
+```
+
+Generate Macrophage clusters using resolution 0.2
+```{r}
+sub_seurat_integrated_SixSamples_cluster5_14_46 <- FindNeighbors(sub_seurat_integrated_SixSamples_cluster5_14_46, dims = 1:10)
+sub_seurat_integrated_SixSamples_cluster5_14_46 <- FindClusters(sub_seurat_integrated_SixSamples_cluster5_14_46, resolution = 0.2, 
+                                                  graph.name = "integrated_snn")
+head(Idents(sub_seurat_integrated_SixSamples_cluster5_14_46), 5)
+```
+
+Generate Macrophage UMAP resolution 0.2
+```{r}
+png(paste0(out_dir,"\\Integrated_data_figures\\res0.2\\","UMAP_Macrophages_SixSamples_res0.2.png"), 
+    width = 21, height = 12, units = "in", res = 600)
+sub_seurat_integrated_SixSamples_cluster5_14_46 <- RunUMAP(sub_seurat_integrated_SixSamples_cluster5_14_46, dims = 1:10)
+DimPlot(sub_seurat_integrated_SixSamples_cluster5_14_46, reduction = "umap", split.by = "group", label = TRUE, 
+        label.size = 5, pt.size = 0.8)
+dev.off()
+```
+
+Find markers of all Macrophage subclusters resolution 0.2
+```{r}
+SixSamples.Macrophages.markers.res0.2 <- FindAllMarkers(sub_seurat_integrated_SixSamples_cluster5_14_46, min.pct = 0.25, logfc.threshold = 0.25)
+SixSamples.Macrophages.markers.res0.2 %>% group_by(cluster) %>% slice_max(n = 2, order_by = avg_log2FC)
+write.table(SixSamples.Macrophages.markers.res0.2, file = "D:/Yan/Harry_Kim/all_samples/Seurat_output/data/results/Integrated_data_figures/res0.2/sixSamples_Macrophagesdge_markers_res0.2.txt", sep = "\t", row.names = FALSE)
+```
+
+Generate Macrophage clusters using resolution 0.4
+```{r}
+sub_seurat_integrated_SixSamples_cluster5_14_46 <- FindNeighbors(sub_seurat_integrated_SixSamples_cluster5_14_46, dims = 1:10)
+sub_seurat_integrated_SixSamples_cluster5_14_46 <- FindClusters(sub_seurat_integrated_SixSamples_cluster5_14_46, resolution = 0.4, 
+                                                  graph.name = "integrated_snn")
+head(Idents(sub_seurat_integrated_SixSamples_cluster5_14_46), 5)
+```
+
+Generate Macrophage UMAP resolution 0.4
+```{r}
+png(paste0(out_dir,"\\Integrated_data_figures\\res0.4\\","UMAP_Macrophages_SixSamples_res0.4.png"), 
+    width = 21, height = 12, units = "in", res = 600)
+sub_seurat_integrated_SixSamples_cluster5_14_46 <- RunUMAP(sub_seurat_integrated_SixSamples_cluster5_14_46, dims = 1:10)
+DimPlot(sub_seurat_integrated_SixSamples_cluster5_14_46, reduction = "umap", split.by = "group", label = TRUE, 
+        label.size = 5, pt.size = 0.8)
+dev.off()
+```
+
+Find markers of all Macrophage subclusters resolution 0.4
+```{r}
+SixSamples.Macrophages.markers.res0.4 <- FindAllMarkers(sub_seurat_integrated_SixSamples_cluster5_14_46, min.pct = 0.25, logfc.threshold = 0.25)
+SixSamples.Macrophages.markers.res0.4 %>% group_by(cluster) %>% slice_max(n = 2, order_by = avg_log2FC)
+write.table(SixSamples.Macrophages.markers.res0.4, file = "D:/Yan/Harry_Kim/all_samples/Seurat_output/data/results/Integrated_data_figures/res0.4/sixSamples_Macrophagesdge_markers_res0.4.txt", sep = "\t", row.names = FALSE)
+```
+```{r}
+
+```
+Generate Macrophage clusters using resolution 0.6
+```{r}
+sub_seurat_integrated_SixSamples_cluster5_14_46 <- FindNeighbors(sub_seurat_integrated_SixSamples_cluster5_14_46, dims = 1:10)
+sub_seurat_integrated_SixSamples_cluster5_14_46 <- FindClusters(sub_seurat_integrated_SixSamples_cluster5_14_46, resolution = 0.6, 
+                                                  graph.name = "integrated_snn")
+head(Idents(sub_seurat_integrated_SixSamples_cluster5_14_46), 5)
+```
+
+Generate Macrophage UMAP resolution 0.6
+```{r}
+png(paste0(out_dir,"\\Integrated_data_figures\\res0.6\\","UMAP_Macrophages_SixSamples_res0.6.png"), 
+    width = 21, height = 12, units = "in", res = 600)
+sub_seurat_integrated_SixSamples_cluster5_14_46 <- RunUMAP(sub_seurat_integrated_SixSamples_cluster5_14_46, dims = 1:10)
+DimPlot(sub_seurat_integrated_SixSamples_cluster5_14_46, reduction = "umap", split.by = "group", label = TRUE, 
+        label.size = 5, pt.size = 0.8)
+dev.off()
+```
+
+Find markers of all Macrophage subclusters resolution 0.6
+```{r}
+SixSamples.Macrophages.markers.res0.6 <- FindAllMarkers(sub_seurat_integrated_SixSamples_cluster5_14_46, min.pct = 0.25, logfc.threshold = 0.25)
+SixSamples.Macrophages.markers.res0.6 %>% group_by(cluster) %>% slice_max(n = 2, order_by = avg_log2FC)
+write.table(SixSamples.Macrophages.markers.res0.6, file = "D:/Yan/Harry_Kim/all_samples/Seurat_output/data/results/Integrated_data_figures/res0.6/sixSamples_Macrophagesdge_markers_res0.6.txt", sep = "\t", row.names = FALSE)
+```
+
+
+```{r}
+setwd("D:\\Yan\\Harry_Kim\\all_samples\\Seurat_output\\data\\results")
+suppressPackageStartupMessages(library(SingleCellExperiment))
+suppressPackageStartupMessages(library(Seurat))
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(RCurl))
+suppressPackageStartupMessages(library(cowplot))
+suppressPackageStartupMessages(library(Matrix))
+suppressPackageStartupMessages(library(scales))
+suppressPackageStartupMessages(library(hdf5r))
+suppressPackageStartupMessages(library(AnnotationHub))
+
+in_dir = "D:\\Yan\\Harry_Kim\\all_samples"
+#SamplesSheet_file = args[2]
+#SamplesSheet_file = paste0(in_dir,"/Seurat_input_data/SamplesSheet.csv")
+out_prefix = "all_samples"
+res = 1.4
+SamplesSheet_file = "D:\\Yan\\Harry_Kim\\all_samples\\Seurat_input_data\\SamplesSheet.csv"
+out_dir = "D:\\Yan\\Harry_Kim\\all_samples\\Seurat_output\\data\\results"
+
+res_string <- paste0("integrated_snn_res.",res)
+
+in_dir
+out_prefix
+SamplesSheet_file
+res
+
+setwd(in_dir)
+dir.create(out_dir, recursive = TRUE)
+dir.create(paste0(out_dir,"QC/"))
+
+SamplesSheet <- read.csv(SamplesSheet_file,header=TRUE)
+
+# Save integrated seurat object
+seurat_integrated <- readRDS(paste0(out_dir,"/",out_prefix,"_integrated_seurat.rds"))
+
+seurat_integrated <- FindClusters(seurat_integrated, resolution = c(0.2, 0.4, 0.6, 0.8, 1.0, 1.4))
+
+# Assign identity of clusters
+Idents(object = seurat_integrated) <- res_string
+
+# Extract identity and sample information from seurat object to determine the number of cells per cluster per sample
+n_cells <- FetchData(seurat_integrated, 
+                     vars = c("ident", "sample")) %>%
+        dplyr::count(ident, sample) %>%
+        tidyr::spread(ident, n)
+
+# create color palette:
+library(RColorBrewer)
+
+coul <- c("#F8766D", "#00BFC4")
+# Transform this data in %
+data_percentage <- apply(data.matrix(n_cells[,-1]), 2, function(x){x*100/sum(x,na.rm=T)})
+rownames(data_percentage) <- n_cells[,1];  colnames(data_percentage) <- colnames(n_cells[,-1])
+
+# Make a stacked barplot--> it will be in %!
+png(paste0(out_dir,"/Integrated_data_figures/",out_prefix,"_BarPlot_percent_bycondition.png"), width = 12, height = 12, units = 'in', res = 300)
+par(xpd=T, mar=par()$mar+c(0,0,0,6))
+barplot(data_percentage, col=coul , border="white", xlab="condition", ylab= "percentage of cells"); legend("topright", legend=rownames(data_percentage), inset=c(-0.02,0), col=coul, pch = 19, bty='n')
+dev.off()
+
+# UMAP of cells in each cluster by sample
+png(paste0(out_dir,"/Integrated_data_figures/",out_prefix,"_integrated_snn_res.",res,"_bysample.png"), width = 18, height = 12, units = 'in', res = 300)                           
+DimPlot(seurat_integrated, 
+        label = TRUE, 
+        split.by = "sample")  + NoLegend()
+dev.off()
+
+# Explore whether clusters segregate by cell cycle phase
+png(paste0(out_dir,"/Integrated_data_figures/",out_prefix,"_integrated_snn_res.",res,"_bycellcycphase.png"), width = 14, height = 12, units = 'in', res = 300)                           
+DimPlot(seurat_integrated,
+        label = TRUE, 
+        split.by = "Phase")  + NoLegend()
+dev.off()
+
+# Determine metrics to plot present in seurat_integrated@meta.data
+metrics <-  c("nUMI", "nGene", "S.Score", "G2M.Score", "mitoRatio")
+
+png(paste0(out_dir,"/Integrated_data_figures/",out_prefix,"_integrated_snn_res.",res,"_FeaturePlot.png"), width = 12, height = 12, units = 'in', res = 300)                           
+FeaturePlot(seurat_integrated, 
+            reduction = "umap", 
+            features = metrics,
+            pt.size = 0.4, 
+            sort.cell = TRUE,
+            min.cutoff = 'q10',
+            label = TRUE)
+dev.off()
+
+# Defining the information in the seurat object of interest
+columns <- c(paste0("PC_", 1:16),
+            "ident",
+            "UMAP_1", "UMAP_2")
+
+# Extracting this data from the seurat object
+pc_data <- FetchData(seurat_integrated, 
+                     vars = columns)
+					 
+# Extract the UMAP coordinates for the first 10 cells
+seurat_integrated@reductions$umap@cell.embeddings[1:10, 1:2]
+
+# Adding cluster label to center of cluster on UMAP
+umap_label <- FetchData(seurat_integrated, 
+                        vars = c("ident", "UMAP_1", "UMAP_2"))  %>%
+  group_by(ident) %>%
+  summarise(x=mean(UMAP_1), y=mean(UMAP_2))
+
+# Plotting a UMAP plot for each of the PCs
+png(paste0(out_dir,"/Integrated_data_figures/",out_prefix,"_umap_pcs.png"), width = 14, height = 12, units = 'in', res = 300)                           
+map(paste0("PC_", 1:16), function(pc){
+        ggplot(pc_data, 
+               aes(UMAP_1, UMAP_2)) +
+                geom_point(aes_string(color=pc), 
+                           alpha = 0.7) +
+                scale_color_gradient(guide = FALSE, 
+                                     low = "grey90", 
+                                     high = "blue")  +
+                geom_text(data=umap_label, 
+                          aes(label=ident, x, y)) +
+                ggtitle(pc)
+}) %>% 
+        plot_grid(plotlist = .)
+dev.off()
+
+# Examine PCA results 
+print(seurat_integrated[["pca"]], dims = 1:5, nfeatures = 5)
+
+#Exploring known cell type markers
+png(paste0(out_dir,"/Integrated_data_figures/",out_prefix,"_dimplot-markers.png"), width = 12, height = 12, units = 'in', res = 300)                           
+DimPlot(object = seurat_integrated, 
+        reduction = "umap", 
+        label = TRUE) + NoLegend()
+dev.off()
+
+# Select the RNA counts slot to be the default assay
+DefaultAssay(seurat_integrated) <- "RNA"
+
+# Normalize RNA data for visualization purposes
+seurat_integrated <- NormalizeData(seurat_integrated, verbose = FALSE)
+
+# Find markers for every cluster compared to all remaining cells, report only the positive ones
+markers <- FindAllMarkers(object = seurat_integrated, 
+                          only.pos = TRUE,
+                          logfc.threshold = 0.25)           
+						  
+DefaultAssay(seurat_integrated) <- "RNA"
+tmp <- paste0(out_dir,"/Integrated_data_figures/",out_prefix,"_samples_dge_markers.txt")
+write.table(markers,tmp,sep="\t",row.names=TRUE)
+
+sel.clust = res_string
+markers[order(markers$p_val_adj),] -> cluster.markers
+
+head(cluster.markers)
+
+# cluster.markers %>%
+#   group_by(cluster) %>%
+#     slice(1:25)  -> topgene.per.cluster
+
+topgene.per.cluster <- cluster.markers[ave(1:nrow(cluster.markers), cluster.markers$cluster, FUN = seq_along) <= 25, ]
+
+
+tmp <- paste0(out_dir,"/Integrated_data_figures/",out_prefix,"_samples_dge_barplot.pdf")
+pdf(tmp, width = 16, height = 14)
+par(1, 5, mar = c(4, 6, 3, 1))
+par(mfrow=c(3,6),mgp=c(2, 0.2, 0))
+lapply(unique(topgene.per.cluster$cluster), function(i) {barplot(sort(setNames(topgene.per.cluster$avg_log2FC, topgene.per.cluster$gene)[topgene.per.cluster$cluster == i], F), horiz = T,las = 1, xlab = "log2(Fold Change)", main = paste0(i, " vs. rest"), xlim = c(0,as.numeric(max(sort(setNames(topgene.per.cluster$avg_log2FC, topgene.per.cluster$gene)[topgene.per.cluster$cluster == i], F)))), border = "white", yaxs = "i"); abline(v = c(0, 0.25), lty = c(1, 2))})
+dev.off()
+
+top5 <- cluster.markers[ave(1:nrow(cluster.markers), cluster.markers$cluster, FUN = seq_along) <= 5, ]
+top3 <- cluster.markers[ave(1:nrow(cluster.markers), cluster.markers$cluster, FUN = seq_along) <= 3, ]
+top2 <- cluster.markers[ave(1:nrow(cluster.markers), cluster.markers$cluster, FUN = seq_along) <= 2, ]
+
+# cluster.markers %>%
+#   group_by(cluster) %>%
+#     slice(1:5) -> top5
+# 	
+# cluster.markers %>%
+#   group_by(cluster) %>%
+#     slice(1:3) -> top3
+# 	
+# cluster.markers %>%
+#   group_by(cluster) %>%
+#     slice(1:2) -> top2
+
+#create a scale.data slot for the selected genes
+seurat_integrated <- ScaleData(seurat_integrated, features = as.character(unique(top5$gene)), assay = "RNA")
+tmp <- paste0(out_dir,"/Integrated_data_figures/",out_prefix,"_samples_dge_heatmap.png")
+png(tmp, width = 12, height = 12, units = "in", res=300)
+DoHeatmap(seurat_integrated, features = as.character(unique(top3$gene)), group.by = sel.clust, 
+    assay = "RNA")
+dev.off()
+
+tmp <- paste0(out_dir,"/Integrated_data_figures/",out_prefix,"_samples_dge_dotplot.pdf")
+pdf(tmp, width = 14, height = 16)
+DotPlot(seurat_integrated, features = as.character(unique(top2$gene)), group.by = sel.clust, 
+    assay = "RNA") + coord_flip()
+dev.off()
+
+tmp <- paste0(out_dir,"/Integrated_data_figures/",out_prefix,"_samples_dge_vlnplot.pdf")
+pdf(tmp, width = 26, height = 26)
+p = VlnPlot(object = seurat_integrated, pt.size = 0, same.y.lims = FALSE, features = as.character(unique(top2$gene)), ncol = 6, group.by = sel.clust, assay = "RNA", combine = FALSE)
+p1 = lapply(X = p, FUN = function(x) x + theme(axis.text.x = element_text(size = 16,  family="Helvetica"), axis.text.y = element_text(size = 20,  family="Helvetica"), axis.title = element_text(size = 0,  family="Helvetica"), legend.text = element_text(size = 0,  family="Helvetica")) + theme(legend.position = "none"))
+p2 = CombinePlots(plots = p1)
+p2
+dev.off()
+
+Per_cluster_conserved <- function(cluster){
+        FindConservedMarkers(seurat_integrated,
+                             ident.1 = cluster,
+                             grouping.var = "sample",
+                             only.pos = TRUE) %>%
+                rownames_to_column(var = "gene") %>%
+                cbind(cluster_id = cluster, .)
+}
+  # Save integrated seurat object
+saveRDS(seurat_integrated, paste0(out_dir,"/",out_prefix,"_final_integrated_seurat.rds"))
+```
+
+################################# 12/20/2023 #######################################################################
+Can we do GO and KEGG for the clusters (like Ze did) so we may have a better idea of the characteristics of each cluster?
+
+Generate marker files for each resolution (0.2, 0.4 and 0.6).
+```{r}
+setwd("D:/Yan/Harry_Kim/all_samples/Seurat_output/data/results/Integrated_data_figures/res0.2/")
+project_name <- "sixSample_macrophages"
+res <-"0.2"  
+clusters <- 
+  unique(sub_seurat_integrated_SixSamples_cluster5_14_46@meta.data[[paste0("integrated_snn_res.", res)]])
+
+for (cluster in clusters) {
+
+  markers <-
+    FindMarkers(
+      sub_seurat_integrated_SixSamples_cluster5_14_46,
+      ident.1 = cluster,
+      group.by = paste0("integrated_snn_res.", res),
+      min.pct = 0.25,
+      logfc.threshold = 0.25
+    )
+  markers$gene <- row.names(markers)
+  file_name <-
+    paste0(
+      project_name,
+      ".markers.res",
+      res,
+      ".cluster",
+      cluster,
+      ".csv"
+    )
+  write.csv(markers, file_name, row.names = FALSE)
+  
+  # Some p_val are zero. We need to replace them by the half of the non-zero minimum value
+  # Convert the values in markers$p_val to numeric
+  markers$p_val <- as.numeric(markers$p_val)
+  
+  # Find the non-zero minimum value in the column
+  non_zero_min <- min(markers$p_val[markers$p_val != 0])
+  
+  # Replace zeros with half of the non-zero minimum value
+  markers$p_val[markers$p_val == 0] <- non_zero_min / 2
+  
+  markers$rankMetric <- sign(markers$avg_log2FC)*(-log10(markers$p_val))
+  
+  write.table(markers[, c("gene", "rankMetric")], file = paste0(
+      project_name,
+      ".markers.res",
+      res,
+      ".cluster",
+      cluster,
+      ".pathway_results.rnk"
+    ), sep = "\t", quote = FALSE, row.names = FALSE, col.names = FALSE) 
+}
+```
+
+
+```{r}
+setwd("D:/Yan/Harry_Kim/all_samples/Seurat_output/data/results/Integrated_data_figures/res0.4/")
+project_name <- "sixSample_macrophages"
+res <-"0.4"  
+clusters <- 
+  unique(sub_seurat_integrated_SixSamples_cluster5_14_46@meta.data[[paste0("integrated_snn_res.", res)]])
+
+for (cluster in clusters) {
+
+  markers <-
+    FindMarkers(
+      sub_seurat_integrated_SixSamples_cluster5_14_46,
+      ident.1 = cluster,
+      group.by = paste0("integrated_snn_res.", res),
+      min.pct = 0.25,
+      logfc.threshold = 0.25
+    )
+  markers$gene <- row.names(markers)
+  file_name <-
+    paste0(
+      project_name,
+      ".markers.res",
+      res,
+      ".cluster",
+      cluster,
+      ".csv"
+    )
+  write.csv(markers, file_name, row.names = FALSE)
+  
+  # Some p_val are zero. We need to replace them by the half of the non-zero minimum value
+  # Convert the values in markers$p_val to numeric
+  markers$p_val <- as.numeric(markers$p_val)
+  
+  # Find the non-zero minimum value in the column
+  non_zero_min <- min(markers$p_val[markers$p_val != 0])
+  
+  # Replace zeros with half of the non-zero minimum value
+  markers$p_val[markers$p_val == 0] <- non_zero_min / 2
+  
+  markers$rankMetric <- sign(markers$avg_log2FC)*(-log10(markers$p_val))
+  
+  write.table(markers[, c("gene", "rankMetric")], file = paste0(
+      project_name,
+      ".markers.res",
+      res,
+      ".cluster",
+      cluster,
+      ".pathway_results.rnk"
+    ), sep = "\t", quote = FALSE, row.names = FALSE, col.names = FALSE) 
+}
+```
