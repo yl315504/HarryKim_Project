@@ -21,9 +21,9 @@
 #       followed by "module help launcher".
 #----------------------------------------------------
 
-#SBATCH -J SixSamples           # Job name
-#SBATCH -o SixSamples.o%j       # Name of stdout output file
-#SBATCH -e SixSamples.e%j       # Name of stderr error file
+#SBATCH -J job_name           # Job name
+#SBATCH -o job_name.o%j       # Name of stdout output file
+#SBATCH -e job_name.e%j       # Name of stderr error file
 #SBATCH -N 1               # Total # of nodes (must be 1 for serial)
 #SBATCH -n 1               # Total # of mpi tasks (should be 1 for serial)
 #SBATCH -p normal
